@@ -45,17 +45,22 @@ def sort_folder(folder):
     list_all_files(folder)
 
     print_sorted_files()
+    print_known_extentions()
+    print_unknown_extentions()
 
 
 def print_sorted_files():
     for f in sorted_found_files.keys():
-        print(f)
+        print('\033[0;32m', f, ':', '\033[0m', sep='')
         for file in sorted_found_files[f]:
             print(file.name)
         print("\n")
 
 
 def soft_file(file):
+    if file.name.startswith("."):
+        return
+
     suffix = file.suffix.lower()
     if suffix in extention_to_folder:
         put_into_folder(extention_to_folder[suffix], file)
@@ -75,6 +80,21 @@ def list_all_files(folder):
             list_all_files(i)
         else:
             soft_file(i)
+
+
+def print_known_extentions():
+    sorted_found_files_copy = sorted_found_files.copy()
+    del sorted_found_files_copy[other]
+    known_files = [x for k in sorted_found_files_copy.values() for x in k]
+    print('\033[0;34m', "Known extentions: ", '\033[0m',  ", ".join(get_extentions(known_files)), sep='')
+
+
+def print_unknown_extentions():
+    print('\033[0;31m', "Unknown extentions: ", '\033[0m', ", ".join(get_extentions(sorted_found_files[other])), sep='')
+
+
+def get_extentions(files):
+    return set(map(lambda file: file.suffix[1:], files))
 
 
 if __name__ == '__main__':
