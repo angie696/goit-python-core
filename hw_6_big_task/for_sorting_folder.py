@@ -1,3 +1,6 @@
+import re
+import shutil
+import sys
 from pathlib import Path
 from sys import argv
 
@@ -40,6 +43,33 @@ extention_to_folder = {
 sorted_found_files = {}
 
 
+def move_files(root_folder):
+    for k, v in get_sorted_found_files_without_others().items():
+        sorted_folder = Path(root_folder, k)
+        if not sorted_folder.exists():
+            sorted_folder.mkdir()
+        for i in v:
+            dest = Path(root_folder.resolve(), k, f"{normalize(i.stem)}{i.suffix}")
+            i.rename(dest)
+
+
+def unpack_archives(root_folder):
+    archives_folder = Path(root_folder.resolve(), archives)
+    if archives_folder.is_dir():
+        for archive in archives_folder.iterdir():
+            shutil.unpack_archive(archive.resolve(), archives_folder.resolve())
+
+
+def remove_empty_folders(folder):
+    for i in folder.iterdir():
+        if i.is_dir():
+            remove_empty_folders(i)
+            if not [a for a in i.iterdir() if not a.name.startswith('.')]:
+                shutil.rmtree(i.resolve(), ignore_errors=True)
+            else:
+                rename_folder(i)
+
+
 def sort_folder(folder):
     # This is main-worker function
     list_all_files(folder)
@@ -48,12 +78,16 @@ def sort_folder(folder):
     print_known_extentions()
     print_unknown_extentions()
 
+    move_files(folder)
+    unpack_archives(folder)
+    remove_empty_folders(folder)
+
 
 def print_sorted_files():
     for f in sorted_found_files.keys():
         print('\033[0;32m', f, ':', '\033[0m', sep='')
         for file in sorted_found_files[f]:
-            print(file.name)
+            print(f"{normalize(file.stem)}{file.suffix}")
         print("\n")
 
 
@@ -74,6 +108,10 @@ def put_into_folder(folder, file):
     sorted_found_files[folder].append(file)
 
 
+def rename_folder(folder):
+    folder.rename(Path(f'{folder.parent.resolve()}/{normalize(folder.name)}'))
+
+
 def list_all_files(folder):
     for i in folder.iterdir():
         if i.is_dir():
@@ -82,10 +120,14 @@ def list_all_files(folder):
             soft_file(i)
 
 
+def get_sorted_found_files_without_others():
+    sorted_found_files_without_copy = sorted_found_files.copy()
+    del sorted_found_files_without_copy[other]
+    return sorted_found_files_without_copy
+
+
 def print_known_extentions():
-    sorted_found_files_copy = sorted_found_files.copy()
-    del sorted_found_files_copy[other]
-    known_files = [x for k in sorted_found_files_copy.values() for x in k]
+    known_files = [x for k in get_sorted_found_files_without_others().values() for x in k]
     print('\033[0;34m', "Known extentions: ", '\033[0m',  ", ".join(get_extentions(known_files)), sep='')
 
 
@@ -97,27 +139,29 @@ def get_extentions(files):
     return set(map(lambda file: file.suffix[1:], files))
 
 
+def normalize(name):
+    table_symbols = ('абвгґдеєжзиіїйклмнопрстуфхцчшщюяыэАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯЫЭьъЬЪ',
+                     (
+                      *(u'abvhgde'), 'ye', 'zh', *(u'zyi'), 'yi', *(u'yklmnoprstuf'), 'kh', 'ts',
+                      'ch', 'sh', 'shch', 'yu', 'ya', 'y', 'ye', *(u'ABVHGDE'), 'Ye', 'Zh', *(u'ZYI'),
+                      'Yi', *(u'YKLMNOPRSTUF'), 'KH', 'TS', 'CH', 'SH', 'SHCH', 'YU', 'YA', 'Y', 'YE',
+                      *(u'_' * 4)
+                     )
+                    )
+    map_cyr_to_latin = {ord(src): dest for src, dest in zip(*table_symbols)}
+
+    rx = re.compile(r"[^\w_]")
+    return rx.sub('_', name.translate(map_cyr_to_latin))
+
+
 if __name__ == '__main__':
     # Start the script here
     if len(argv) < 2:
         print("You didn't pass folder to sort")
-        exit()
+        sys.exit()
     dir_to_sort = Path(argv[1])
     if not dir_to_sort.is_dir():
         print("Your file isn't a folder")
-        exit()
+        sys.exit()
     else:
         sort_folder(dir_to_sort)
-
-
-# def normalize(name):
-#     table_symbols = ('абвгґдеєжзиіїйклмнопрстуфхцчшщюяыэАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯЫЭьъЬЪ',
-#                      (
-#                       *(u'abvhgde'), 'ye', 'zh', *(u'zyi'), 'yi', *(u'yklmnoprstuf'), 'kh', 'ts',
-#                       'ch', 'sh', 'shch', 'yu', 'ya', 'y', 'ye', *(u'ABVHGDE'), 'Ye', 'Zh', *(u'ZYI'),
-#                       'Yi', *(u'YKLMNOPRSTUF'), 'KH', 'TS', 'CH', 'SH', 'SHCH', 'YU', 'YA', 'Y', 'YE',
-#                       *(u'_' * 4)
-#                      )
-#                     )
-#     map_cyr_to_latin = {ord(src): dest for src, dest in zip(*table_symbols)}
-#     print(map_cyr_to_latin)
