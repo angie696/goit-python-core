@@ -2,7 +2,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from sys import argv
+
 
 # Folders
 images: str = 'images'
@@ -156,10 +156,10 @@ def normalize(name):
 
 if __name__ == '__main__':
     # Start the script here
-    if len(argv) < 2:
+    if len(sys.argv) < 2:
         print("You didn't pass folder to sort")
         sys.exit()
-    dir_to_sort = Path(argv[1])
+    dir_to_sort = Path(sys.argv[1])
     if not dir_to_sort.is_dir():
         print("Your file isn't a folder")
         sys.exit()
