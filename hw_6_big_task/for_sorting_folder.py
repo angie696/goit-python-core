@@ -44,13 +44,13 @@ sorted_found_files = {}
 
 
 def move_files(root_folder):
-    for k, v in get_sorted_found_files_without_others().items():
-        sorted_folder = Path(root_folder, k)
+    for dest_folder, found_files in get_sorted_found_files_without_others().items():
+        sorted_folder = Path(root_folder, dest_folder)
         if not sorted_folder.exists():
             sorted_folder.mkdir()
-        for i in v:
-            dest = Path(root_folder.resolve(), k, f"{normalize(i.stem)}{i.suffix}")
-            i.rename(dest)
+        for file in found_files:
+            dest = Path(root_folder.resolve(), dest_folder, f"{normalize(file.stem)}{file.suffix}")
+            file.rename(dest)
 
 
 def unpack_archives(root_folder):
@@ -61,16 +61,20 @@ def unpack_archives(root_folder):
 
 
 def remove_empty_folders(folder):
-    for i in folder.iterdir():
-        if i.is_dir():
-            remove_empty_folders(i)
-            if not [a for a in i.iterdir() if not a.name.startswith('.')]:
-                shutil.rmtree(i.resolve(), ignore_errors=True)
+    for current_folder in folder.iterdir():
+        if current_folder.is_dir():
+            remove_empty_folders(current_folder)
+            if has_no_files(current_folder):
+                shutil.rmtree(current_folder.resolve(), ignore_errors=True)
             else:
-                rename_folder(i)
+                rename_folder(current_folder)
 
 
-def sort_folder(folder):
+def has_no_files(folder):
+    return not [file for file in folder.iterdir() if not file.name.startswith('.')]
+
+
+def sort_and_cleanup_folder(folder):
     # This is main-worker function
     list_all_files(folder)
 
@@ -84,14 +88,14 @@ def sort_folder(folder):
 
 
 def print_sorted_files():
-    for f in sorted_found_files.keys():
-        print('\033[0;32m', f, ':', '\033[0m', sep='')
-        for file in sorted_found_files[f]:
+    for folder in sorted_found_files.keys():
+        print('\033[0;32m', folder, ':', '\033[0m', sep='')
+        for file in sorted_found_files[folder]:
             print(f"{normalize(file.stem)}{file.suffix}")
         print("\n")
 
 
-def soft_file(file):
+def sort_file(file):
     if file.name.startswith("."):
         return
 
@@ -113,11 +117,11 @@ def rename_folder(folder):
 
 
 def list_all_files(folder):
-    for i in folder.iterdir():
-        if i.is_dir():
-            list_all_files(i)
+    for item in folder.iterdir():
+        if item.is_dir():
+            list_all_files(item)
         else:
-            soft_file(i)
+            sort_file(item)
 
 
 def get_sorted_found_files_without_others():
@@ -127,7 +131,7 @@ def get_sorted_found_files_without_others():
 
 
 def print_known_extentions():
-    known_files = [x for k in get_sorted_found_files_without_others().values() for x in k]
+    known_files = [item for sublist in get_sorted_found_files_without_others().values() for item in sublist]
     print('\033[0;34m', "Known extentions: ", '\033[0m',  ", ".join(get_extentions(known_files)), sep='')
 
 
@@ -164,4 +168,4 @@ if __name__ == '__main__':
         print("Your file isn't a folder")
         sys.exit()
     else:
-        sort_folder(dir_to_sort)
+        sort_and_cleanup_folder(dir_to_sort)
