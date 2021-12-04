@@ -7,8 +7,8 @@ weekdays_massive = [[], [], [], [], [], [], []]
 def find_birthday_boy(text_file):
     today = datetime.today()
     start_date = today - timedelta(days=today.weekday())
-    all_weekdays = [(start_date + timedelta(days=idx)).strftime("%d.%m") for idx in range(-2, 5)]
-    days_important = [all_weekdays[:2]] + [all_weekdays[2:]]
+    all_weekdays = [(start_date + timedelta(days=idx)).strftime("%d.%m") for idx in range(-2, 7)]
+    days_important = [all_weekdays[:3]] + all_weekdays[3:]
     with open(text_file, 'r') as all_users:
         for user in all_users:
             name_and_birth = user.split(":")
@@ -25,7 +25,7 @@ def find_birthday_boy(text_file):
 def get_birthdays_per_week():
     birthday_boy = find_birthday_boy('scientist_birthday')
     for idx in range(len(birthday_boy)):
-        print(f"{WEEKDAYS[idx]:<7}: {', '.join(birthday_boy[idx])}")
+        print(f"{WEEKDAYS[idx]:<9}: {', '.join(birthday_boy[idx])}")
 
 
 if __name__ == "__main__":
